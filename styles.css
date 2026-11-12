@@ -1,0 +1,410 @@
+/* ==========================================================================
+   Claim Tracker — tuntutan perbelanjaan staf
+   Sistem berasingan daripada Financial Tracker & Bisnes Tracker.
+   ========================================================================== */
+
+:root{
+  --ink:#0d1a17;
+  --muted:#5c6b66;
+  --faint:#92a09b;
+  --paper:#f1f6f4;
+  --white:#ffffff;
+  --line:#dde7e3;
+  --line-soft:#eaf1ee;
+
+  --teal:#0f766e;
+  --teal-deep:#115e59;
+  --teal-light:#d5f3ee;
+  --red:#c0291c;
+  --red-light:#fff1ef;
+  --amber:#b45309;
+  --amber-light:#fef3c7;
+  --green:#15803d;
+  --green-light:#dcfce7;
+  --blue:#0369a1;
+  --blue-light:#e0f2fe;
+
+  --r-xs:9px; --r-s:12px; --r-m:16px; --r-l:22px; --r-xl:28px;
+  --sh-1:0 1px 2px rgba(10,45,40,.05);
+  --sh-2:0 6px 18px rgba(10,45,40,.06), 0 1px 3px rgba(10,45,40,.05);
+  --ring:0 0 0 3px rgba(15,118,110,.18);
+
+  font-family:"Plus Jakarta Sans",Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:var(--ink);
+  -webkit-text-size-adjust:100%;
+}
+*{box-sizing:border-box;}
+::selection{background:var(--teal-light);}
+body{
+  margin:0; min-width:320px; font-size:16px; line-height:1.45; color:var(--ink);
+  background:
+    radial-gradient(1100px 520px at 10% -10%, #d9f0eb 0%, rgba(217,240,235,0) 60%),
+    radial-gradient(900px 460px at 94% 0%, #e2eefa 0%, rgba(226,238,250,0) 56%),
+    var(--paper);
+  background-attachment:fixed;
+}
+button,input,select,textarea{font:inherit;}
+button{cursor:pointer;}
+[hidden]{display:none !important;}
+h1,h2,h3,p{margin:0;}
+h1{font-size:1.45rem; font-weight:800; letter-spacing:-.035em; line-height:1.15;}
+h2{font-size:1.06rem; font-weight:800; letter-spacing:-.02em;}
+h3{font-size:.96rem; font-weight:750;}
+
+/* ---------- Rangka ---------- */
+.app-shell{width:min(100%, 820px); margin:0 auto; padding:22px 16px calc(104px + env(safe-area-inset-bottom, 0px));}
+.topbar,.section-heading,.dialog-heading{display:flex; justify-content:space-between; align-items:center; gap:14px;}
+.eyebrow{color:var(--muted); font-size:.63rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; margin-bottom:5px;}
+.count{flex:none; color:var(--muted); font-size:.72rem; font-weight:750; background:var(--line-soft); border-radius:99px; padding:5px 11px; white-space:nowrap;}
+.form-help{color:var(--muted); font-size:.75rem; line-height:1.55; margin-top:8px;}
+.form-help:empty{display:none;}
+.icon-button{
+  flex:none; display:grid; place-items:center; width:42px; height:42px;
+  border:1px solid var(--line); border-radius:50%; background:var(--white);
+  font-size:1.15rem; color:var(--teal); text-decoration:none; box-shadow:var(--sh-1);
+}
+.icon-button:hover{box-shadow:var(--sh-2);}
+.nav-home{font-size:1.1rem;}
+.link-button{border:0; background:transparent; color:var(--teal); font-size:.74rem; font-weight:800; padding:4px 2px;}
+
+/* ---------- Navigasi ---------- */
+.page-nav{
+  position:fixed; left:50%; transform:translateX(-50%); bottom:max(10px, env(safe-area-inset-bottom, 0px));
+  z-index:40; display:flex; gap:4px; width:min(100% - 20px, 380px);
+  padding:7px; border:1px solid #d5e2de; border-radius:20px;
+  background:rgba(255,255,255,.93); backdrop-filter:blur(14px) saturate(1.2);
+  box-shadow:0 10px 30px rgba(10,45,40,.14);
+}
+.page-nav a{
+  flex:1; min-width:0; display:grid; justify-items:center; gap:3px; padding:9px 2px;
+  border-radius:14px; color:var(--muted); text-decoration:none;
+  font-size:.66rem; font-weight:800; white-space:nowrap;
+}
+.page-nav a::before{
+  content:""; width:20px; height:20px; background:currentColor;
+  -webkit-mask:var(--ico) center/contain no-repeat; mask:var(--ico) center/contain no-repeat;
+}
+.page-nav a[data-tab="list"]{--ico:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23000%27%20stroke-width%3D%271.9%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%274%27%20y%3D%273%27%20width%3D%2716%27%20height%3D%2718%27%20rx%3D%272.6%27%2F%3E%3Cpath%20d%3D%27M8.4%208.4h7.2M8.4%2012.4h7.2M8.4%2016.4h4.4%27%2F%3E%3C%2Fsvg%3E");}
+.page-nav a[data-tab="settings"]{--ico:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23000%27%20stroke-width%3D%271.9%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%273.2%27%2F%3E%3Cpath%20d%3D%27M19.4%2013.6a1.7%201.7%200%200%200%20.34%201.88l.06.06a2%202%200%201%201-2.84%202.84l-.06-.06a1.7%201.7%200%200%200-2.88%201.2V21a2%202%200%201%201-4%200v-.1A1.7%201.7%200%200%200%207%2019.4a1.7%201.7%200%200%200-1.88.34l-.06.06a2%202%200%201%201-2.84-2.84l.06-.06A1.7%201.7%200%200%200%203%2014.6a1.7%201.7%200%200%200-1.6-1.1H1a2%202%200%201%201%200-4h.1A1.7%201.7%200%200%200%202.7%208.4%27%2F%3E%3C%2Fsvg%3E");}
+.page-nav a.active{background:var(--teal); color:#fff; box-shadow:0 4px 12px rgba(15,118,110,.3);}
+
+/* ---------- Kad seksyen ---------- */
+.list-section,.danger-section{
+  background:var(--white); border:1px solid var(--line);
+  border-radius:var(--r-l); padding:18px; margin-bottom:16px; box-shadow:var(--sh-2);
+}
+.danger-section{padding:14px;}
+
+/* ---------- Borang ---------- */
+.stack-form{display:grid; gap:12px; margin-top:14px;}
+label{display:grid; gap:7px; font-size:.75rem; font-weight:800; color:var(--muted);}
+input,select,textarea{
+  width:100%; border:1px solid var(--line); border-radius:var(--r-s); padding:12px;
+  color:var(--ink); font-weight:650; background:#fbfefd;
+  transition:border-color .14s ease, box-shadow .14s ease, background .14s ease;
+}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none; background:var(--white); border-color:var(--teal); box-shadow:var(--ring);}
+.two-columns{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.save-button{
+  border:0; border-radius:var(--r-s); background:var(--teal); color:#fff;
+  padding:14px; font-weight:800; font-size:.87rem;
+  box-shadow:0 6px 16px rgba(15,118,110,.25); transition:transform .14s ease, background .14s ease;
+}
+.save-button:hover{background:var(--teal-deep); transform:translateY(-1px);}
+.save-button:disabled{opacity:.6; transform:none;}
+.save-button.ghost{background:var(--teal-light); color:var(--teal-deep); box-shadow:none;}
+.save-button.ghost:hover{background:#bdeae2;}
+.save-button.danger-ghost{background:var(--red-light); color:var(--red);}
+.save-button.danger-ghost:hover{background:#ffe3df;}
+.danger-button{
+  width:100%; border:1px solid #f6cfc9; border-radius:var(--r-s);
+  background:var(--red-light); color:var(--red); padding:12px; font-weight:800; font-size:.82rem;
+}
+.danger-button:hover{background:#ffe3df;}
+.primary-cta{
+  display:block; width:100%; border:0; border-radius:var(--r-m); background:var(--teal); color:#fff;
+  padding:16px; font-size:.92rem; font-weight:800; margin-bottom:16px;
+  box-shadow:0 8px 20px rgba(15,118,110,.26);
+}
+.primary-cta:hover{background:var(--teal-deep);}
+.field-label{color:var(--muted); font-size:.75rem; font-weight:800; margin-bottom:7px;}
+
+/* ---------- Ringkasan ---------- */
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;}
+.stat{
+  position:relative; overflow:hidden; padding:16px 15px 14px;
+  border-radius:var(--r-l); background:var(--white); border:1px solid var(--line); box-shadow:var(--sh-1);
+}
+.stat::before{content:""; position:absolute; top:0; left:0; right:0; height:4px; background:var(--line);}
+.stat small,.stat span{display:block; color:var(--muted); font-size:.68rem; font-weight:700; line-height:1.4;}
+.stat strong{display:block; margin:6px 0 4px; font-size:1.18rem; font-weight:800; letter-spacing:-.04em;}
+.stat.all::before{background:linear-gradient(90deg,#2dd4bf,#0f766e);}
+.stat.draft::before{background:linear-gradient(90deg,#94a3b8,#475569);}
+.stat.waiting::before{background:linear-gradient(90deg,#fbbf24,#d97706);}
+.stat.waiting strong{color:var(--amber);}
+.stat.paid::before{background:linear-gradient(90deg,#4ade80,#15803d);}
+.stat.paid strong{color:var(--green);}
+
+/* ---------- Penapis & carian ---------- */
+.filter-switch{display:flex; gap:3px; padding:4px; background:#e6efec; border-radius:14px; margin:14px 0 10px;}
+.filter-switch button{flex:1; min-width:0; border:0; background:transparent; color:var(--muted); border-radius:10px; padding:9px 6px; font-size:.74rem; font-weight:800;}
+.filter-switch button.active{background:var(--white); color:var(--teal-deep); box-shadow:var(--sh-1);}
+.search-box{margin-bottom:6px;}
+
+/* ---------- Senarai tuntutan ---------- */
+.claim-list{display:grid; grid-template-columns:minmax(0,1fr); gap:10px; margin-top:12px;}
+.claim-card{
+  min-width:0; overflow:hidden; background:var(--white);
+  border:1px solid var(--line); border-left:4px solid var(--line); border-radius:var(--r-m);
+  transition:box-shadow .14s ease, transform .14s ease;
+}
+.claim-card:hover{box-shadow:var(--sh-2); transform:translateY(-1px);}
+.claim-card.status-draf{border-left-color:#94a3b8;}
+.claim-card.status-dihantar{border-left-color:#0ea5e9;}
+.claim-card.status-lulus{border-left-color:#f59e0b;}
+.claim-card.status-dibayar{border-left-color:#22c55e;}
+.claim-card.status-ditolak{border-left-color:#ef4444;}
+.claim-link{display:block; padding:14px; text-decoration:none; color:inherit;}
+.claim-top{display:flex; justify-content:space-between; gap:12px;}
+.claim-ident{min-width:0;}
+.claim-no{color:var(--faint); font-size:.63rem; font-weight:850; letter-spacing:.08em;}
+.claim-ident h3{margin:4px 0 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.claim-sub{color:var(--muted); font-size:.76rem; font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.claim-amount{flex:none; text-align:right; white-space:nowrap;}
+.claim-amount strong{display:block; font-size:1.02rem; font-weight:800; letter-spacing:-.03em;}
+.status-chip{
+  display:inline-block; margin-top:5px; padding:3px 10px; border-radius:99px;
+  background:var(--line-soft); color:var(--muted); font-size:.6rem; font-weight:850; letter-spacing:.05em; text-transform:uppercase;
+}
+.status-dihantar .status-chip{background:var(--blue-light); color:var(--blue);}
+.status-lulus .status-chip{background:var(--amber-light); color:var(--amber);}
+.status-dibayar .status-chip{background:var(--green-light); color:var(--green);}
+.status-ditolak .status-chip{background:var(--red-light); color:var(--red);}
+.claim-meta{margin-top:10px; color:var(--faint); font-size:.7rem; font-weight:650;}
+.claim-actions{display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line);}
+.claim-act{
+  border:0; border-left:1px solid var(--line); background:var(--teal-light); color:var(--teal-deep);
+  padding:11px 6px; font-size:.75rem; font-weight:800;
+}
+.claim-act:first-child{border-left:0;}
+.claim-act:hover{background:#bdeae2;}
+.all-clear{color:var(--muted); font-size:.8rem; text-align:center; padding:20px 8px; line-height:1.6;}
+.all-clear a{color:var(--teal); font-weight:800;}
+
+/* ---------- Panduan mula ---------- */
+.onboard{padding:8px 4px 4px;}
+.onboard h3{font-size:1.02rem;}
+.onboard p{color:var(--muted); font-size:.81rem; line-height:1.6; margin-top:9px;}
+.onboard-steps{margin:13px 0 0; padding-left:20px; display:grid; gap:8px; color:var(--muted); font-size:.8rem; line-height:1.5;}
+.onboard-steps b{color:var(--ink);}
+.onboard-actions{display:grid; gap:9px; margin-top:16px;}
+
+/* ---------- Hero butiran tuntutan ---------- */
+.claim-hero{
+  position:relative; overflow:hidden; border-radius:var(--r-xl); padding:24px; color:#fff;
+  background:linear-gradient(145deg,#14a79a 0%,#0f766e 55%,#115e59 100%);
+  box-shadow:0 18px 40px rgba(15,118,110,.3); margin:18px 0 16px;
+}
+.claim-hero::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(420px 220px at 88% -18%, rgba(255,255,255,.26), rgba(255,255,255,0) 70%);
+}
+.claim-hero > *{position:relative;}
+.claim-hero > p{opacity:.84; font-size:.85rem; font-weight:700;}
+.claim-hero > strong{display:block; font-size:2.3rem; font-weight:800; letter-spacing:-.055em; margin:6px 0 20px;}
+.hero-breakdown{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.hero-breakdown span{display:block; padding:10px 12px; border-radius:14px; background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.16);}
+.hero-breakdown small{display:block; opacity:.78; font-size:.67rem; font-weight:700; letter-spacing:.04em;}
+.hero-breakdown b{display:block; margin-top:4px; font-size:.92rem; font-weight:800;}
+.hero-actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px;}
+.hero-actions button{
+  border:1px solid rgba(255,255,255,.32); background:rgba(255,255,255,.15); color:#fff;
+  border-radius:var(--r-xs); padding:11px 15px; font-size:.78rem; font-weight:800;
+}
+.hero-actions button:hover{background:rgba(255,255,255,.26);}
+
+/* ---------- Senarai butiran ---------- */
+.item-list{display:grid; grid-template-columns:minmax(0,1fr); gap:9px; margin-top:12px;}
+.item-row{
+  min-width:0; display:grid; grid-template-columns:54px minmax(0,1fr) auto; align-items:center; gap:11px;
+  padding:11px; border:1px solid var(--line); border-radius:var(--r-m); background:#fbfefd;
+}
+.item-thumb{width:54px; height:54px; border-radius:10px; overflow:hidden; background:var(--line-soft); display:grid; place-items:center;}
+.item-thumb img{width:100%; height:100%; object-fit:cover; cursor:zoom-in;}
+.thumb-empty{color:var(--faint); font-size:1rem; font-weight:800;}
+.item-body{min-width:0;}
+.item-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 9px;}
+.item-cat{font-size:.82rem; font-weight:800;}
+.item-date{color:var(--faint); font-size:.68rem; font-weight:700;}
+.item-desc{margin-top:3px; color:var(--muted); font-size:.73rem; font-weight:650; line-height:1.45;}
+.item-end{flex:none; display:flex; align-items:center; gap:4px;}
+.item-amount{font-size:.92rem; font-weight:800; letter-spacing:-.02em; white-space:nowrap;}
+.row-actions{display:flex; align-items:center; gap:2px;}
+.edit-button{border:0; background:transparent; color:var(--faint); border-radius:9px; font-size:1rem; line-height:1; padding:6px;}
+.edit-button:hover{background:var(--teal-light); color:var(--teal-deep);}
+.add-item{width:100%; margin-top:12px;}
+
+/* ---------- Dialog ---------- */
+.sheet{
+  width:min(100% - 24px, 560px); border:0; border-radius:var(--r-xl); padding:0;
+  background:var(--white); box-shadow:0 30px 70px rgba(8,40,35,.36);
+}
+.sheet::backdrop{background:rgba(10,45,40,.55); backdrop-filter:blur(3px);}
+.sheet form{display:grid; gap:13px; padding:22px;}
+.close-button{background:var(--line-soft); border-color:transparent; color:var(--muted); box-shadow:none;}
+.close-button:hover{background:#dde7e3; color:var(--ink);}
+.photo-sheet{width:min(100% - 24px, 760px); padding:20px;}
+.photo-sheet img{width:100%; border-radius:var(--r-s); margin-top:12px;}
+
+/* ---------- Medan gambar resit ---------- */
+.receipt-field{border:1px dashed var(--line); border-radius:var(--r-m); padding:14px; background:#fbfefd;}
+.receipt-preview{
+  min-height:140px; display:grid; place-items:center; border-radius:var(--r-s);
+  background:var(--line-soft); overflow:hidden; margin-bottom:11px;
+}
+.receipt-preview img{width:100%; max-height:300px; object-fit:contain; background:#fff;}
+.receipt-empty{color:var(--faint); font-size:.76rem; font-weight:700;}
+.receipt-buttons{gap:9px;}
+
+/* ---------- Storan ---------- */
+.storage-bar{height:10px; border-radius:99px; background:var(--line-soft); overflow:hidden; margin-top:12px;}
+.storage-bar span{display:block; height:100%; width:0; background:linear-gradient(90deg,#2dd4bf,#0f766e); border-radius:inherit; transition:width .2s ease;}
+.storage-bar span.is-warn{background:linear-gradient(90deg,#fbbf24,#d97706);}
+.storage-bar span.is-full{background:linear-gradient(90deg,#f87171,#dc2626);}
+.backup-actions{margin-top:12px; gap:9px;}
+
+/* ---------- Toast ---------- */
+.toast{
+  position:fixed; left:50%; bottom:calc(96px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%);
+  z-index:60; max-width:calc(100% - 32px); background:var(--teal-deep); color:#fff;
+  padding:13px 20px; border-radius:var(--r-s); font-size:.8rem; font-weight:750; line-height:1.5;
+  box-shadow:0 10px 30px rgba(10,45,40,.4);
+}
+
+/* ==========================================================================
+   Responsif
+   ========================================================================== */
+@media (min-width:480px){
+  .stat-grid{grid-template-columns:repeat(4,1fr);}
+  .hero-breakdown{grid-template-columns:repeat(4,1fr);}
+}
+@media (min-width:760px){
+  .page-nav{
+    position:static; transform:none; width:auto; margin:18px 0;
+    border-radius:16px; padding:6px; background:#e6efec; border-color:transparent;
+    backdrop-filter:none; box-shadow:none;
+  }
+  .page-nav a{display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 6px; border-radius:11px; font-size:.82rem;}
+  .page-nav a::before{width:17px; height:17px;}
+  .page-nav a.active{background:var(--white); color:var(--teal-deep); box-shadow:var(--sh-1);}
+  .app-shell{width:min(100%, 900px); padding:34px 24px 56px;}
+  .toast{bottom:24px;}
+  h1{font-size:1.65rem;}
+  .claim-hero{padding:30px;}
+  .claim-hero > strong{font-size:2.7rem;}
+  .list-section{padding:22px;}
+  .sheet form{padding:28px;}
+  .item-row{grid-template-columns:64px minmax(0,1fr) auto;}
+  .item-thumb{width:64px; height:64px;}
+}
+@media (min-width:1040px){
+  .app-shell{width:min(100% - 48px, 1180px); padding:36px 0 64px;}
+  .home-shell,.detail-shell{display:grid; align-items:start; gap:18px 22px; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); grid-auto-flow:row dense;}
+  .home-shell > *,.detail-shell > *{margin:0 !important;}
+  .home-shell > .topbar,.home-shell > .page-nav,.home-shell > .tab-panel{grid-column:1 / -1;}
+  .home-shell > .tab-panel{display:grid; align-items:start; gap:18px 22px; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); grid-auto-flow:row dense;}
+  .home-shell > .tab-panel > *{margin:0 !important;}
+  #listPanel > .stat-grid{grid-column:1 / -1; grid-template-columns:repeat(4,1fr);}
+  #listPanel > .primary-cta{grid-column:1 / -1; max-width:360px;}
+  #listPanel > .list-section{grid-column:1 / -1;}
+  #listPanel .claim-list{grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start;}
+  #settingsPanel > .list-section:nth-of-type(1){grid-column:1; grid-row:span 2;}
+  #settingsPanel > .list-section:nth-of-type(2){grid-column:2;}
+  #settingsPanel > .list-section:nth-of-type(3){grid-column:2;}
+
+  .detail-shell > .topbar,.detail-shell > .claim-hero{grid-column:1 / -1;}
+  .detail-shell > .detail-form-section{grid-column:1; position:sticky; top:24px;}
+  .detail-shell > .items-section{grid-column:2;}
+  .detail-shell > .danger-section{grid-column:1;}
+}
+@media (min-width:1440px){
+  .app-shell{width:min(100% - 64px, 1280px);}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none !important;} }
+
+/* ==========================================================================
+   Borang tuntutan boleh cetak
+   ========================================================================== */
+.print-body{background:#e8eeec; padding:0 0 40px;}
+.doc-toolbar{
+  display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:14px 18px; background:var(--white); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5;
+}
+.toolbar-back{color:var(--teal); text-decoration:none; font-size:.82rem; font-weight:800;}
+.toolbar-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.toolbar-toggle{display:flex; align-items:center; gap:7px; font-size:.75rem; font-weight:750; color:var(--muted);}
+.toolbar-toggle input{width:auto; accent-color:var(--teal);}
+.toolbar-actions .save-button{padding:10px 16px; font-size:.78rem;}
+.doc-tip{width:min(100%, 840px); margin:14px auto 0; padding:0 18px; color:var(--muted); font-size:.76rem; line-height:1.55;}
+
+#docRoot .claim-sheet,#docRoot .receipts{
+  width:min(100%, 840px); margin:16px auto; background:var(--white);
+  padding:44px 46px; border-radius:6px; box-shadow:0 6px 28px rgba(10,45,40,.12);
+  font-family:"Times New Roman",Georgia,serif; color:#15201b; font-size:11.5pt; line-height:1.45;
+}
+#docRoot h1{font-size:15pt; margin:0 0 2pt;}
+#docRoot h2{font-size:13pt; letter-spacing:1pt; margin:0;}
+#docRoot h3{font-size:12pt; margin:0 0 8pt;}
+#docRoot p{margin:0 0 3pt;}
+#docRoot .muted{color:#55605a; font-size:9.5pt;}
+#docRoot .doc-top{width:100%; border-bottom:2px solid #0f766e; padding-bottom:8pt; margin-bottom:12pt;}
+#docRoot .doc-company{display:inline-block; width:58%; vertical-align:top;}
+#docRoot .doc-title{display:inline-block; width:40%; vertical-align:top; text-align:right;}
+#docRoot .doc-title h2{color:#0f766e;}
+#docRoot .doc-no{font-size:11pt; font-weight:bold; margin-top:3pt;}
+#docRoot table{border-collapse:collapse; width:100%;}
+#docRoot .meta-table{margin-bottom:12pt;}
+#docRoot .meta-table th,#docRoot .meta-table td{border:1px solid #c8d2cd; padding:5pt 7pt; font-size:10pt; text-align:left; vertical-align:top;}
+#docRoot .meta-table th{background:#eef4f2; width:15%; font-weight:bold;}
+#docRoot .items-table th,#docRoot .items-table td{border:1px solid #c8d2cd; padding:6pt 7pt; font-size:10pt; vertical-align:top;}
+#docRoot .items-table thead th{background:#0f766e; color:#fff; text-align:left; font-size:9.5pt; letter-spacing:.4pt;}
+#docRoot .items-table .c-no{width:28pt; text-align:center;}
+#docRoot .items-table .c-date{width:74pt; white-space:nowrap;}
+#docRoot .items-table .c-num{width:80pt; text-align:right; white-space:nowrap;}
+#docRoot .items-table .c-mid{width:48pt; text-align:center;}
+#docRoot .items-table .c-muted{color:#55605a;}
+#docRoot .items-table tfoot .grand td{background:#eef4f2; font-weight:bold; font-size:11pt;}
+#docRoot .items-table tfoot .grand td:first-child{text-align:right;}
+#docRoot .words{margin-top:10pt; font-size:10.5pt;}
+#docRoot .sign-table{margin-top:26pt;}
+#docRoot .sign-table td{width:50%; vertical-align:top; padding-right:18pt;}
+#docRoot .sign-label{font-size:9.5pt; color:#55605a; font-weight:bold;}
+#docRoot .sign-line{border-bottom:1px solid #55605a; height:42pt;}
+#docRoot .sign-name{font-weight:bold; font-size:10.5pt; margin-top:4pt;}
+#docRoot .foot-note{margin-top:18pt; padding-top:8pt; border-top:1px solid #d6ded9; color:#55605a; font-size:9.5pt;}
+#docRoot .receipts-title{color:#0f766e; border-bottom:1px solid #0f766e; padding-bottom:5pt;}
+#docRoot .receipt{margin-bottom:20pt; page-break-inside:avoid;}
+#docRoot .receipt-cap{font-size:9.5pt; color:#35403a; margin-bottom:5pt;}
+#docRoot .receipt img{max-width:100%; border:1px solid #c8d2cd;}
+
+@media print{
+  .no-print{display:none !important;}
+  .print-body{background:#fff; padding:0;}
+  #docRoot .claim-sheet,#docRoot .receipts{width:auto; margin:0; padding:0; box-shadow:none; border-radius:0;}
+  #docRoot .receipts{page-break-before:always; padding-top:0;}
+  #docRoot .receipt img{max-height:200mm;}
+  @page{size:A4; margin:16mm;}
+}
+@media (max-width:620px){
+  #docRoot .claim-sheet,#docRoot .receipts{padding:24px 18px;}
+  #docRoot .doc-company,#docRoot .doc-title{display:block; width:100%; text-align:left;}
+  #docRoot .doc-title{margin-top:10pt;}
+  #docRoot .meta-table th{width:30%;}
+  #docRoot .items-table{font-size:9pt; table-layout:fixed;}
+  #docRoot .items-table th,#docRoot .items-table td{padding:4pt 3pt; font-size:8.5pt; word-break:break-word;}
+  #docRoot .items-table .c-no{width:16pt;}
+  #docRoot .items-table .c-date{width:46pt; white-space:normal;}
+  #docRoot .items-table .c-num{width:50pt;}
+  #docRoot .items-table .c-mid{width:32pt;}
+  #docRoot .sign-table td{display:block; width:100%; padding:0 0 20pt;}
+}

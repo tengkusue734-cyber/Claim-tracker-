@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ms">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f766e" />
+    <link rel="icon" href="favicon.ico?v=1" sizes="any" />
+    <link rel="stylesheet" href="styles.css?v=1" />
+    <title>Borang Tuntutan · Claim Tracker</title>
+  </head>
+  <body class="print-body">
+    <div class="doc-toolbar no-print">
+      <a class="toolbar-back" href="index.html" id="backLink">← Kembali</a>
+      <div class="toolbar-actions">
+        <label class="toolbar-toggle"><input type="checkbox" id="withImages" checked /> Sertakan gambar resit</label>
+        <button type="button" class="save-button ghost" id="wordButton">Word</button>
+        <button type="button" class="save-button" id="printButton">Cetak / Simpan PDF</button>
+      </div>
+    </div>
+    <p class="doc-tip no-print">Dalam tetingkap cetak, pilih <b>Save as PDF</b> sebagai printer untuk dapatkan fail PDF yang boleh dihantar kepada bahagian akaun melalui emel atau WhatsApp.</p>
+    <div id="docRoot"></div>
+    <script src="claim.js?v=1"></script>
+    <script src="print.js?v=1"></script>
+  </body>
+</html>

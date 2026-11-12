@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ms">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="description" content="Rekod tuntutan perbelanjaan staf dengan gambar resit, kemudian muat turun sebagai PDF atau Word." />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="favicon.ico?v=1" sizes="any" />
+    <link rel="icon" href="icon.svg?v=1" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="styles.css?v=1" />
+    <title>Claim Tracker — Tuntutan Staf</title>
+  </head>
+  <body>
+    <main class="app-shell home-shell">
+      <header class="topbar">
+        <div><p class="eyebrow">TUNTUTAN STAF</p><h1>Claim Tracker</h1></div>
+        <button class="icon-button" id="installButton" aria-label="Pasang aplikasi" hidden>↓</button>
+      </header>
+      <nav class="page-nav" aria-label="Navigasi utama"><a class="active" href="#senarai" data-tab="list">Tuntutan</a><a href="#tetapan" data-tab="settings">Tetapan</a></nav>
+
+      <div class="tab-panel" id="listPanel">
+        <section class="stat-grid" aria-label="Ringkasan tuntutan">
+          <article class="stat all"><small>Semua tuntutan</small><strong id="statAll">0</strong><span id="statAllNote">0 rekod</span></article>
+          <article class="stat draft"><small>Draf</small><strong id="statDraft">0</strong><span id="statDraftNote">Belum dihantar</span></article>
+          <article class="stat waiting"><small>Menunggu kelulusan</small><strong id="statWaiting">RM0.00</strong><span id="statWaitingNote">0 tuntutan</span></article>
+          <article class="stat paid"><small>Sudah dibayar</small><strong id="statPaid">RM0.00</strong><span id="statPaidNote">0 tuntutan</span></article>
+        </section>
+
+        <button class="primary-cta" type="button" id="newClaim">+ Tuntutan baharu</button>
+
+        <section class="list-section" aria-labelledby="listTitle">
+          <div class="section-heading">
+            <div><p class="eyebrow">SENARAI</p><h2 id="listTitle">Semua tuntutan</h2></div>
+            <span class="count" id="claimCount">0 tuntutan</span>
+          </div>
+          <div class="filter-switch" role="group" aria-label="Tapis tuntutan">
+            <button type="button" class="active" data-filter="all">Semua</button>
+            <button type="button" data-filter="draf">Draf</button>
+            <button type="button" data-filter="dihantar">Dihantar</button>
+            <button type="button" data-filter="dibayar">Dibayar</button>
+          </div>
+          <input id="searchBox" class="search-box" type="search" placeholder="Cari no tuntutan, nama staf atau perkara" aria-label="Cari tuntutan" />
+          <div id="claimList" class="claim-list" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <div class="tab-panel" id="settingsPanel" hidden>
+        <section class="list-section">
+          <div class="section-heading"><div><p class="eyebrow">UNTUK BORANG</p><h2>Maklumat syarikat</h2></div></div>
+          <p class="form-help">Maklumat ini muncul di kepala borang tuntutan yang kau cetak atau muat turun. Isi sekali sahaja.</p>
+          <form id="companyForm" class="stack-form">
+            <label>Nama syarikat<input id="company" maxlength="80" placeholder="Contoh: Sunaini Enterprise" /></label>
+            <div class="two-columns"><label>No. pendaftaran (SSM)<input id="companyNo" maxlength="40" /></label><label>Telefon<input id="companyPhone" maxlength="40" /></label></div>
+            <label>Emel<input id="companyEmail" type="email" maxlength="80" /></label>
+            <label>Alamat<textarea id="companyAddress" rows="2" maxlength="200"></textarea></label>
+            <label>Nota kaki borang<input id="note" maxlength="140" placeholder="Contoh: Sila lampirkan resit asal bersama borang ini." /></label>
+            <button class="save-button" type="submit">Simpan maklumat syarikat</button>
+          </form>
+          <p id="companyStatus" class="form-help"></p>
+        </section>
+
+        <section class="list-section">
+          <div class="section-heading"><div><p class="eyebrow">LALAI</p><h2>Maklumat staf</h2></div></div>
+          <p class="form-help">Diisi automatik pada setiap tuntutan baharu. Kau masih boleh ubah pada tuntutan tertentu.</p>
+          <form id="staffForm" class="stack-form">
+            <div class="two-columns"><label>Nama staf<input id="staffName" maxlength="80" /></label><label>No. pekerja<input id="staffNo" maxlength="40" /></label></div>
+            <div class="two-columns"><label>Jawatan<input id="position" maxlength="60" /></label><label>Bahagian<input id="department" maxlength="60" /></label></div>
+            <div class="two-columns"><label>Nama bank<input id="bankName" maxlength="60" placeholder="Maybank" /></label><label>No. akaun<input id="bankAccount" maxlength="40" /></label></div>
+            <div class="two-columns"><label>Pelulus (nama)<input id="approver" maxlength="60" placeholder="Contoh: Encik Rahim, Pengurus" /></label><label>Prefix no tuntutan<input id="prefix" maxlength="8" placeholder="CLM" /></label></div>
+            <button class="save-button" type="submit">Simpan maklumat staf</button>
+          </form>
+          <p id="staffStatus" class="form-help"></p>
+        </section>
+
+        <section class="list-section">
+          <div class="section-heading"><div><p class="eyebrow">DATA</p><h2>Sandaran &amp; storan</h2></div></div>
+          <p class="form-help">Data dan gambar resit disimpan dalam browser peranti ini sahaja. Buat sandaran sebelum tukar peranti atau bersihkan browser.</p>
+          <div class="storage-bar"><span id="storageFill"></span></div>
+          <p class="form-help" id="storageNote">Storan digunakan: —</p>
+          <div class="two-columns backup-actions">
+            <button type="button" class="save-button" id="exportBackup">Simpan sandaran (.json)</button>
+            <button type="button" class="save-button ghost" id="importTrigger">Muat naik sandaran</button>
+          </div>
+          <input id="importFile" type="file" accept="application/json,.json" hidden />
+        </section>
+      </div>
+    </main>
+
+    <template id="emptyClaimTemplate">
+      <div class="onboard">
+        <h3>Belum ada tuntutan</h3>
+        <p>Sistem ini untuk rekod tuntutan perbelanjaan staf kepada syarikat. Tiga langkah sahaja:</p>
+        <ol class="onboard-steps">
+          <li><b>Buat tuntutan</b> — nama staf, bulan dan perkara</li>
+          <li><b>Masuk butiran</b> — tarikh belian, perkara, keterangan, jumlah dan gambar resit</li>
+          <li><b>Muat turun</b> — borang lengkap dalam bentuk PDF atau Word untuk dihantar</li>
+        </ol>
+        <div class="onboard-actions">
+          <button type="button" class="save-button" data-onboard="new">+ Buat tuntutan pertama</button>
+        </div>
+      </div>
+    </template>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="claim.js?v=1"></script>
+    <script src="app.js?v=1"></script>
+  </body>
+</html>

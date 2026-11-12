@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ms">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f766e" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="favicon.ico?v=1" sizes="any" />
+    <link rel="icon" href="icon.svg?v=1" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="styles.css?v=1" />
+    <title>Butiran Tuntutan · Claim Tracker</title>
+  </head>
+  <body>
+    <main class="app-shell detail-shell">
+      <header class="topbar">
+        <div><p class="eyebrow" id="claimNoLabel">TUNTUTAN</p><h1 id="claimTitleLabel">Tuntutan</h1></div>
+        <a class="icon-button nav-home" href="index.html" aria-label="Kembali ke senarai">←</a>
+      </header>
+
+      <section class="claim-hero" aria-label="Ringkasan tuntutan">
+        <p id="heroStaff">—</p>
+        <strong id="heroTotal">RM0.00</strong>
+        <div class="hero-breakdown">
+          <span><small>Butiran</small><b id="heroItems">0</b></span>
+          <span><small>Gambar resit</small><b id="heroReceipts">0</b></span>
+          <span><small>Bulan tuntutan</small><b id="heroPeriod">—</b></span>
+          <span><small>Status</small><b id="heroStatus">Draf</b></span>
+        </div>
+        <div class="hero-actions">
+          <button type="button" id="printClaim">Cetak / PDF</button>
+          <button type="button" id="wordClaim">Muat turun Word</button>
+        </div>
+      </section>
+
+      <section class="list-section detail-form-section">
+        <div class="section-heading"><div><p class="eyebrow">MAKLUMAT</p><h2>Butiran tuntutan</h2></div>
+          <button type="button" class="link-button" id="toggleDetails">Sembunyi</button></div>
+        <form id="claimForm" class="stack-form" >
+          <div class="two-columns"><label>No. tuntutan<input id="fClaimNo" maxlength="30" /></label><label>Tarikh tuntutan<input id="fDate" type="date" /></label></div>
+          <label>Perkara / tajuk tuntutan<input id="fTitle" maxlength="90" placeholder="Contoh: Tuntutan perjalanan & bahan projek Kuala Nerus" /></label>
+          <div class="two-columns"><label>Bulan tuntutan<input id="fPeriod" type="month" /></label><label>Status<select id="fStatus"></select></label></div>
+          <div class="two-columns"><label>Nama staf<input id="fStaffName" maxlength="80" /></label><label>No. pekerja<input id="fStaffNo" maxlength="40" /></label></div>
+          <div class="two-columns"><label>Jawatan<input id="fPosition" maxlength="60" /></label><label>Bahagian<input id="fDepartment" maxlength="60" /></label></div>
+          <div class="two-columns"><label>Nama bank<input id="fBankName" maxlength="60" /></label><label>No. akaun<input id="fBankAccount" maxlength="40" /></label></div>
+          <label>Pelulus<input id="fApprover" maxlength="60" placeholder="Contoh: Encik Rahim, Pengurus Operasi" /></label>
+          <label>Nota<input id="fNote" maxlength="160" placeholder="Contoh: Resit asal diserahkan kepada akaun pada 3 Nov" /></label>
+          <button class="save-button" type="submit">Simpan maklumat</button>
+        </form>
+        <p id="formStatus" class="form-help"></p>
+      </section>
+
+      <section class="list-section items-section" aria-labelledby="itemsTitle">
+        <div class="section-heading">
+          <div><p class="eyebrow">BUTIRAN BELIAN</p><h2 id="itemsTitle">Senarai perbelanjaan</h2></div>
+          <span class="count" id="itemCount">0 butiran</span>
+        </div>
+        <div id="itemList" class="item-list" aria-live="polite"></div>
+        <button class="save-button add-item" type="button" id="addItem">+ Tambah butiran</button>
+      </section>
+
+      <section class="danger-section">
+        <button type="button" class="danger-button" id="deleteClaim">Padam tuntutan ini</button>
+      </section>
+    </main>
+
+    <dialog id="itemDialog" class="sheet"><form id="itemForm" method="dialog">
+      <div class="dialog-heading"><div><p class="eyebrow">BUTIRAN</p><h2 id="itemDialogTitle">Tambah butiran</h2></div><button class="icon-button close-button" id="closeItem" type="button" aria-label="Tutup">×</button></div>
+      <div class="two-columns">
+        <label>Tarikh belian<input id="iDate" type="date" required /></label>
+        <label>Jumlah (RM)<input id="iAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required /></label>
+      </div>
+      <label>Perkara<input id="iCategory" list="categoryList" maxlength="60" placeholder="Contoh: Tol &amp; parkir" />
+        <datalist id="categoryList"></datalist>
+      </label>
+      <label>Keterangan<input id="iDescription" maxlength="140" placeholder="Contoh: Tol Gong Badak ke Kemaman (pergi balik)" /></label>
+
+      <div class="receipt-field">
+        <p class="field-label">Gambar resit / bukti belian</p>
+        <div class="receipt-preview" id="receiptPreview"><p class="receipt-empty">Belum ada gambar</p></div>
+        <div class="two-columns receipt-buttons">
+          <button type="button" class="save-button ghost" id="pickReceipt">Pilih / ambil gambar</button>
+          <button type="button" class="save-button ghost danger-ghost" id="dropReceipt" hidden>Buang gambar</button>
+        </div>
+        <input id="receiptFile" type="file" accept="image/*" capture="environment" hidden />
+        <p class="form-help">Gambar dimampatkan automatik supaya tidak memenuhi storan. Guna kamera terus dari telefon pun boleh.</p>
+      </div>
+
+      <button class="save-button" type="submit">Simpan butiran</button>
+      <button type="button" class="danger-button" id="deleteItem" hidden>Padam butiran ini</button>
+    </form></dialog>
+
+    <dialog id="photoDialog" class="sheet photo-sheet">
+      <div class="dialog-heading"><div><p class="eyebrow">RESIT</p><h2 id="photoTitle">Gambar resit</h2></div><button class="icon-button close-button" id="closePhoto" type="button" aria-label="Tutup">×</button></div>
+      <img id="photoFull" alt="Gambar resit" />
+    </dialog>
+
+    <template id="emptyItemTemplate">
+      <p class="all-clear">Belum ada butiran. Tekan <b>+ Tambah butiran</b> untuk masukkan tarikh belian, perkara, jumlah dan gambar resit.</p>
+    </template>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="claim.js?v=1"></script>
+    <script src="detail.js?v=1"></script>
+  </body>
+</html>
