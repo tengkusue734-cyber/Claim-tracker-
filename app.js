@@ -3,6 +3,7 @@
 let claims = readClaims();
 let filter = "all";
 let search = "";
+let staffFilter = "all";
 
 /* ---------- Tab ---------- */
 function setTab(name) {
@@ -26,8 +27,43 @@ function renderStats() {
   $("#statDraftNote").textContent = drafts.length ? "Belum dihantar" : "Tiada draf";
   $("#statWaiting").textContent = money(waiting.reduce((sum, claim) => sum + claimTotal(claim), 0));
   $("#statWaitingNote").textContent = `${waiting.length} tuntutan`;
-  $("#statPaid").textContent = money(paid.reduce((sum, claim) => sum + claimTotal(claim), 0));
+  $("#statPaid").textContent = money(paid.reduce((sum, claim) => sum + approvedTotal(claim), 0));
   $("#statPaidNote").textContent = `${paid.length} tuntutan`;
+  const blockedValue = claims.reduce((sum, claim) => sum + rejectedTotal(claim), 0);
+  const blockedCount = claims.filter(claim => claim.status === "tak-boleh" || rejectedCount(claim) > 0).length;
+  $("#statBlocked").textContent = money(blockedValue);
+  $("#statBlockedNote").textContent = blockedCount ? `${blockedCount} tuntutan ada tolakan` : "Tiada tolakan";
+}
+
+/* ---------- Peranan ---------- */
+function renderRole() {
+  const note = $("#roleNote");
+  const admin = isAdminUser();
+  const user = currentUser();
+  document.body.dataset.ctRole = admin ? "admin" : user ? "staff" : "guest";
+  if (!user) {
+    note.hidden = false;
+    note.className = "role-note";
+    note.innerHTML = "<b>Belum login.</b> Tekan <b>Login Google</b> di atas supaya tuntutan kau disegerakkan dan boleh dilihat oleh admin.";
+  } else if (admin) {
+    note.hidden = false;
+    note.className = "role-note is-admin";
+    note.innerHTML = "<b>Papan Admin.</b> Kau nampak tuntutan semua staf. Buka mana-mana tuntutan untuk luluskan, tandakan dibayar, atau tandakan tak boleh claim berserta sebab.";
+  } else {
+    note.hidden = true;
+  }
+  // penapis staf hanya untuk admin
+  const picker = $("#staffFilter");
+  picker.hidden = !admin;
+  if (admin) {
+    const names = [...new Set(claims.map(c => c.ownerEmail || c.staffName).filter(Boolean))].sort();
+    const current = staffFilter;
+    picker.innerHTML = `<option value="all">Semua staf (${names.length})</option>` +
+      names.map(name => `<option value="${escapeHtml(name)}"></option>`).join("");
+    names.forEach((name, index) => { picker.options[index + 1].textContent = name; });
+    picker.value = names.includes(current) ? current : "all";
+    staffFilter = picker.value;
+  }
 }
 
 /* ---------- Senarai ---------- */
@@ -35,6 +71,7 @@ function visibleClaims() {
   const needle = search.trim().toLowerCase();
   return claims
     .filter(claim => filter === "all" ? true : claim.status === filter)
+    .filter(claim => staffFilter === "all" ? true : (claim.ownerEmail || claim.staffName) === staffFilter)
     .filter(claim => !needle || [claim.claimNo, claim.staffName, claim.title, claim.department]
       .some(value => String(value || "").toLowerCase().includes(needle)))
     .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || (b.createdAt || 0) - (a.createdAt || 0));
@@ -51,6 +88,8 @@ function renderList() {
 
   items.forEach(claim => {
     const total = claimTotal(claim);
+    const rejected = rejectedTotal(claim);
+    const shown = rejected > 0 ? approvedTotal(claim) : total;
     const card = document.createElement("article");
     card.className = `claim-card status-${claim.status || "draf"}`;
     card.innerHTML = `<a class="claim-link" href="claim.html?id=${encodeURIComponent(claim.id)}">
@@ -60,9 +99,10 @@ function renderList() {
             <h3></h3>
             <p class="claim-sub"></p>
           </div>
-          <div class="claim-amount"><strong>${money(total)}</strong><span class="status-chip">${STATUS_LABEL[claim.status] || "Draf"}</span></div>
+          <div class="claim-amount"><strong>${money(shown)}</strong>${rejected > 0 ? `<span class="amount-strike">${money(total)}</span>` : ""}<span class="status-chip">${STATUS_LABEL[claim.status] || "Draf"}</span></div>
         </div>
         <p class="claim-meta"></p>
+        ${claim.remark ? `<p class="claim-remark"></p>` : ""}
       </a>
       <div class="claim-actions">
         <button type="button" class="claim-act" data-open="${claim.id}">Buka</button>
@@ -72,13 +112,17 @@ function renderList() {
     card.querySelector(".claim-no").textContent = claim.claimNo || "—";
     card.querySelector("h3").textContent = claim.title || "Tuntutan tanpa tajuk";
     card.querySelector(".claim-sub").textContent = [claim.staffName, claim.department].filter(Boolean).join(" · ") || "Tiada nama staf";
-    card.querySelector(".claim-meta").textContent =
-      `${monthLabel(claim.period)} · ${itemsOf(claim).length} butiran · ${receiptCount(claim)} resit · ${dateLabel(claim.date)}`;
+    const metaParts = [monthLabel(claim.period), `${itemsOf(claim).length} butiran`, `${receiptCount(claim)} resit`, dateLabel(claim.date)];
+    if (isAdminUser() && claim.ownerEmail) metaParts.unshift(claim.ownerEmail);
+    card.querySelector(".claim-meta").textContent = metaParts.join(" · ");
+    if (claim.remark) card.querySelector(".claim-remark").textContent = `⚠ ${claim.remark}`;
     list.append(card);
   });
 }
 
-function renderAll() { claims = readClaims(); renderStats(); renderList(); refreshStorage(); }
+function renderAll() { claims = readClaims(); renderRole(); renderStats(); renderList(); refreshStorage(); }
+document.addEventListener("claim-cloud-data", renderAll);
+document.addEventListener("claim-cloud-ready", renderAll);
 
 /* ---------- Tindakan senarai ---------- */
 $("#claimList").addEventListener("click", event => {
@@ -104,12 +148,11 @@ $(".filter-switch").addEventListener("click", event => {
 });
 
 $("#searchBox").addEventListener("input", event => { search = event.target.value; renderList(); });
+$("#staffFilter").addEventListener("change", event => { staffFilter = event.target.value; renderList(); });
 
 function createClaim() {
   const claim = blankClaim();
-  const list = readClaims();
-  list.push(claim);
-  if (!writeClaims(list)) return;
+  if (!saveClaim(claim)) return;
   location.href = `claim.html?id=${encodeURIComponent(claim.id)}`;
 }
 $("#newClaim").addEventListener("click", createClaim);
@@ -124,7 +167,59 @@ function loadSettingsForm() {
     const node = $(`#${field}`);
     if (node) node.value = settings[field] || "";
   });
+  paintLogo();
 }
+
+/* ---------- Logo syarikat ---------- */
+function paintLogo() {
+  const settings = readSettings();
+  const box = $("#logoPreview");
+  const logo = docLogo();
+  if (logo) {
+    box.innerHTML = `<img src="${logo}" alt="Logo syarikat" />`;
+    box.classList.remove("is-empty");
+  } else {
+    box.innerHTML = `<p class="logo-empty">Tanpa logo — borang guna nama syarikat sahaja</p>`;
+    box.classList.add("is-empty");
+  }
+  $("#resetLogo").hidden = !settings.logo && !settings.logoOff;
+  $("#dropLogo").textContent = settings.logoOff ? "Pakai semula logo" : "Tanpa logo";
+}
+
+$("#pickLogo").addEventListener("click", () => $("#logoFile").click());
+$("#logoFile").addEventListener("change", async event => {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  $("#pickLogo").disabled = true;
+  $("#pickLogo").textContent = "Memproses…";
+  try {
+    const picture = await compressLogo(file);
+    const settings = readSettings();
+    settings.logo = picture;
+    settings.logoOff = false;
+    if (writeSettings(settings)) { paintLogo(); toast("Logo dikemas kini. Ia akan muncul pada borang PDF dan Word."); }
+  } catch (error) {
+    console.error(error);
+    toast("Gambar logo tidak boleh dibaca. Cuba fail PNG atau JPG lain.");
+  } finally {
+    $("#pickLogo").disabled = false;
+    $("#pickLogo").textContent = "Tukar logo";
+  }
+  refreshStorage();
+});
+$("#dropLogo").addEventListener("click", () => {
+  const settings = readSettings();
+  settings.logoOff = !settings.logoOff;
+  if (writeSettings(settings)) paintLogo();
+});
+$("#resetLogo").addEventListener("click", () => {
+  const settings = readSettings();
+  settings.logo = "";
+  settings.logoOff = false;
+  if (writeSettings(settings)) { paintLogo(); toast("Kembali kepada logo lalai."); }
+  refreshStorage();
+});
 
 $("#companyForm").addEventListener("submit", event => {
   event.preventDefault();

@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f766e" />
     <link rel="manifest" href="manifest.json" />
-    <link rel="icon" href="favicon.ico?v=1" sizes="any" />
-    <link rel="icon" href="icon.svg?v=1" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1" />
+    <link rel="icon" href="favicon.ico?v=4" sizes="any" />
+    <link rel="icon" href="icon.svg?v=4" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=4" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" />
-    <link rel="stylesheet" href="styles.css?v=1" />
+    <link rel="stylesheet" href="styles.css?v=4" />
     <title>Butiran Tuntutan · Claim Tracker</title>
   </head>
   <body>
@@ -34,6 +34,22 @@
           <button type="button" id="printClaim">Cetak / PDF</button>
           <button type="button" id="wordClaim">Muat turun Word</button>
         </div>
+      </section>
+
+      <div class="remark-banner" id="remarkBanner" hidden></div>
+
+      <section class="list-section decision-section" id="decisionSection" hidden>
+        <div class="section-heading"><div><p class="eyebrow">KEPUTUSAN ADMIN</p><h2>Luluskan atau tolak</h2></div><span class="count" id="decisionWho"></span></div>
+        <p class="form-help">Tetapkan status keseluruhan tuntutan di sini. Untuk tolak butiran tertentu sahaja, tekan <b>✎</b> pada baris berkenaan dalam Senarai perbelanjaan.</p>
+        <div class="decision-buttons">
+          <button type="button" class="dec-btn dec-ok" data-decide="lulus">Luluskan</button>
+          <button type="button" class="dec-btn dec-paid" data-decide="dibayar">Tandakan dibayar</button>
+          <button type="button" class="dec-btn dec-no" data-decide="tak-boleh">Tak boleh claim</button>
+          <button type="button" class="dec-btn" data-decide="dihantar">Kembalikan untuk semakan</button>
+        </div>
+        <label>Sebab / remark<textarea id="decisionRemark" rows="2" maxlength="240" placeholder="Contoh: Resit tidak jelas, sila hantar semula gambar yang terang."></textarea></label>
+        <button class="save-button" type="button" id="saveRemark">Simpan remark sahaja</button>
+        <p id="decisionStatus" class="form-help"></p>
       </section>
 
       <section class="list-section detail-form-section">
@@ -89,6 +105,11 @@
         <p class="form-help">Gambar dimampatkan automatik supaya tidak memenuhi storan. Guna kamera terus dari telefon pun boleh.</p>
       </div>
 
+      <div class="item-admin" id="itemAdmin" hidden>
+        <label class="reject-toggle"><input id="iReject" type="checkbox" /> Butiran ini <b>tak boleh claim</b></label>
+        <label id="iRejectField" hidden>Sebab tak boleh claim<input id="iRemark" maxlength="140" placeholder="Contoh: Resit tiada nama kedai" /></label>
+      </div>
+
       <button class="save-button" type="submit">Simpan butiran</button>
       <button type="button" class="danger-button" id="deleteItem" hidden>Padam butiran ini</button>
     </form></dialog>
@@ -103,7 +124,10 @@
     </template>
 
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-    <script src="claim.js?v=1"></script>
-    <script src="detail.js?v=1"></script>
+    <script src="app-config.js?v=4"></script>
+    <script src="default-logo.js?v=4"></script>
+    <script src="claim.js?v=4"></script>
+    <script src="detail.js?v=4"></script>
+    <script type="module" src="cloud.js?v=4"></script>
   </body>
 </html>

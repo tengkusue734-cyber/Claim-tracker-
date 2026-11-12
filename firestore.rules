@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Senarai admin: mesti sama dengan app-config.js ----
+    function adminEmails() {
+      return [
+        'tengkusue734@gmail.com'
+      ];
+    }
+    function signedIn()  { return request.auth != null; }
+    function isAdmin()   { return signedIn() && request.auth.token.email in adminEmails(); }
+    function ownsClaim() { return signedIn() && resource.data.ownerUid == request.auth.uid; }
+
+    // ---- Profil pengguna ----
+    match /users/{uid} {
+      allow read:  if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---- Tuntutan ----
+    match /claims/{claimId} {
+      allow read:   if isAdmin() || ownsClaim();
+      allow create: if signedIn()
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.status in ['draf', 'dihantar'];
+      // Staf boleh edit tuntutan sendiri bila-bila masa, tetapi tidak boleh
+      // meluluskan diri sendiri — hanya admin boleh set lulus/dibayar/tak-boleh.
+      allow update: if isAdmin()
+                    || (ownsClaim() && request.resource.data.status in ['draf', 'dihantar']);
+      allow delete: if isAdmin() || ownsClaim();
+
+      match /receipts/{itemId} {
+        allow read, write: if isAdmin()
+          || (signedIn() && get(/databases/$(database)/documents/claims/$(claimId)).data.ownerUid == request.auth.uid);
+      }
+    }
+  }
+}

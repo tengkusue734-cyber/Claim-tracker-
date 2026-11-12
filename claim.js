@@ -17,8 +17,11 @@ const STATUSES = [
   { value: "dihantar", label: "Dihantar" },
   { value: "lulus", label: "Diluluskan" },
   { value: "dibayar", label: "Dibayar" },
-  { value: "ditolak", label: "Ditolak" }
+  { value: "tak-boleh", label: "Tak boleh claim" }
 ];
+/* Status yang hanya admin boleh tetapkan */
+const ADMIN_STATUSES = ["lulus", "dibayar", "tak-boleh"];
+const STAFF_STATUSES = ["draf", "dihantar"];
 const STATUS_LABEL = Object.fromEntries(STATUSES.map(s => [s.value, s.label]));
 
 const CATEGORIES = [
@@ -85,6 +88,7 @@ function readClaims() { try { const v = JSON.parse(localStorage.getItem(CLAIMS_K
 function writeClaims(list) { return safeSet(CLAIMS_KEY, JSON.stringify(list)); }
 
 const SETTINGS_DEFAULT = {
+  logo: "", logoOff: false,
   company: "", companyNo: "", companyAddress: "", companyPhone: "", companyEmail: "",
   staffName: "", staffNo: "", department: "", position: "",
   bankName: "", bankAccount: "", approver: "", prefix: "CLM", note: ""
@@ -125,11 +129,70 @@ function sizeLabel(bytes) {
   return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
+/* Logo yang dipakai pada dokumen: logo sendiri → logo lalai → tiada */
+function docLogo() {
+  const settings = readSettings();
+  if (settings.logoOff) return "";
+  if (settings.logo) return settings.logo;
+  return (typeof DEFAULT_LOGO !== "undefined") ? DEFAULT_LOGO : "";
+}
+
 /* ---------- Model tuntutan ---------- */
 function itemsOf(claim) { return Array.isArray(claim && claim.items) ? claim.items : []; }
 function claimTotal(claim) { return itemsOf(claim).reduce((sum, item) => sum + (Number(item.amount) || 0), 0); }
+
+/* Butiran yang ditanda "tak boleh claim" oleh admin */
+function itemRejected(item) { return item && item.claimable === false; }
+function approvedTotal(claim) {
+  if (claim && claim.status === "tak-boleh") return 0;
+  return itemsOf(claim).filter(item => !itemRejected(item)).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+}
+function rejectedTotal(claim) {
+  if (claim && claim.status === "tak-boleh") return claimTotal(claim);
+  return itemsOf(claim).filter(itemRejected).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+}
+function rejectedCount(claim) {
+  if (claim && claim.status === "tak-boleh") return itemsOf(claim).length;
+  return itemsOf(claim).filter(itemRejected).length;
+}
+
+/* Peranan pengguna semasa (diisi oleh cloud.js) */
+function currentUser() { try { return JSON.parse(localStorage.getItem("claim-tracker-profile-v1")) || null; } catch { return null; } }
+function isAdminUser() {
+  if (window.ctCloud && window.ctCloud.ready) return !!window.ctCloud.isAdmin;
+  const profile = currentUser();
+  return !!(profile && profile.isAdmin);
+}
+function signedIn() {
+  if (window.ctCloud && window.ctCloud.ready) return !!window.ctCloud.user;
+  return !!currentUser();
+}
 function receiptCount(claim) { return itemsOf(claim).filter(item => item.receipt && item.receipt.dataUrl).length; }
 function findClaim(id) { return readClaims().find(claim => claim.id === id); }
+
+/* Simpan satu tuntutan: cermin tempatan + tolak ke cloud */
+function saveClaim(claim) {
+  const list = readClaims();
+  const index = list.findIndex(item => item.id === claim.id);
+  const profile = currentUser();
+  if (profile) {
+    if (!claim.ownerUid) claim.ownerUid = profile.uid;
+    if (!claim.ownerEmail) claim.ownerEmail = profile.email;
+  }
+  claim.updatedAt = Date.now();
+  claim.pendingSync = true;
+  if (index === -1) list.push(claim); else list[index] = claim;
+  if (!writeClaims(list)) return false;
+  if (window.ctCloud && window.ctCloud.ready && window.ctCloud.user) window.ctCloud.save(claim);
+  else { (window.__ctQueue = window.__ctQueue || []).push({ type: "save", claim }); }
+  return true;
+}
+
+function deleteClaimById(id) {
+  writeClaims(readClaims().filter(item => item.id !== id));
+  if (window.ctCloud && window.ctCloud.ready && window.ctCloud.user) window.ctCloud.remove(id);
+  else { (window.__ctQueue = window.__ctQueue || []).push({ type: "delete", id }); }
+}
 
 function nextClaimNo() {
   const settings = readSettings();
@@ -159,8 +222,13 @@ function blankClaim() {
     bankAccount: settings.bankAccount,
     approver: settings.approver,
     status: "draf",
+    remark: "",
+    decidedBy: "",
+    decidedAt: "",
     note: "",
     items: [],
+    ownerUid: (currentUser() || {}).uid || "",
+    ownerEmail: (currentUser() || {}).email || "",
     createdAt: Date.now()
   };
 }
@@ -193,6 +261,35 @@ function compressImage(file, maxSide = 1400, quality = 0.72) {
           width, height,
           addedAt: Date.now()
         });
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* Mampat logo — kekalkan PNG supaya latar lutsinar tidak hilang */
+function compressLogo(file, maxSide = 520) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type || !file.type.startsWith("image/")) { reject(new Error("Fail bukan gambar")); return; }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Gagal baca fail"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("Gagal buka gambar"));
+      image.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        // Latar putih supaya sama dengan kertas borang — logo lutsinar
+        // tidak akan jadi kotak hitam dalam Word atau pembaca PDF lain.
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/png"));
       };
       image.src = reader.result;
     };
@@ -245,16 +342,22 @@ function claimFormHtml(claim, options) {
   const withImages = !options || options.withImages !== false;
   const items = itemsOf(claim);
   const total = claimTotal(claim);
+  const approved = approvedTotal(claim);
+  const rejected = rejectedTotal(claim);
+  const logo = docLogo();
 
-  const rows = items.map((item, index) => `
-      <tr>
+  const rows = items.map((item, index) => {
+    const bad = itemRejected(item) || claim.status === "tak-boleh";
+    return `
+      <tr${bad ? ' class="row-reject"' : ""}>
         <td class="c-no">${index + 1}</td>
         <td class="c-date">${escapeHtml(dateLabel(item.date))}</td>
         <td>${escapeHtml(item.category || "—")}</td>
-        <td>${escapeHtml(item.description || "")}</td>
+        <td>${escapeHtml(item.description || "")}${bad && item.itemRemark ? `<br /><i class="c-reject">Tak boleh claim: ${escapeHtml(item.itemRemark)}</i>` : bad ? '<br /><i class="c-reject">Tak boleh claim</i>' : ""}</td>
         <td class="c-num">${escapeHtml(money2(item.amount))}</td>
         <td class="c-mid">${item.receipt && item.receipt.dataUrl ? "Ada" : "Tiada"}</td>
-      </tr>`).join("");
+      </tr>`;
+  }).join("");
 
   const emptyRow = items.length ? "" :
     `<tr><td colspan="6" class="c-mid c-muted">Tiada butiran tuntutan direkod.</td></tr>`;
@@ -273,10 +376,15 @@ function claimFormHtml(claim, options) {
   <div class="claim-sheet">
     <header class="doc-top">
       <div class="doc-company">
-        <h1>${escapeHtml(settings.company || "Nama syarikat belum diisi")}</h1>
-        ${settings.companyNo ? `<p class="muted">No. Pendaftaran: ${escapeHtml(settings.companyNo)}</p>` : ""}
-        ${settings.companyAddress ? `<p class="muted">${escapeHtml(settings.companyAddress)}</p>` : ""}
-        ${(settings.companyPhone || settings.companyEmail) ? `<p class="muted">${escapeHtml([settings.companyPhone, settings.companyEmail].filter(Boolean).join(" · "))}</p>` : ""}
+        <table class="brand"><tr>
+          ${logo ? `<td class="brand-logo"><img src="${logo}" alt="Logo syarikat" /></td>` : ""}
+          <td class="brand-text">
+            <h1>${escapeHtml(settings.company || "Nama syarikat belum diisi")}</h1>
+            ${settings.companyNo ? `<p class="muted">No. Pendaftaran: ${escapeHtml(settings.companyNo)}</p>` : ""}
+            ${settings.companyAddress ? `<p class="muted">${escapeHtml(settings.companyAddress)}</p>` : ""}
+            ${(settings.companyPhone || settings.companyEmail) ? `<p class="muted">${escapeHtml([settings.companyPhone, settings.companyEmail].filter(Boolean).join(" · "))}</p>` : ""}
+          </td>
+        </tr></table>
       </div>
       <div class="doc-title">
         <h2>BORANG TUNTUTAN PERBELANJAAN</h2>
@@ -301,6 +409,10 @@ function claimFormHtml(claim, options) {
         <th>Perkara</th><td colspan="3">${escapeHtml(claim.title || "—")}</td>
       </tr>
       <tr>
+        <th>Status</th><td>${escapeHtml(STATUS_LABEL[claim.status] || "Draf")}</td>
+        <th>Disahkan oleh</th><td>${escapeHtml(claim.decidedBy || "—")}${claim.decidedAt ? ` · ${escapeHtml(dateLabel(claim.decidedAt))}` : ""}</td>
+      </tr>
+      <tr>
         <th>Bank</th><td>${escapeHtml(claim.bankName || "—")}</td>
         <th>No. akaun</th><td>${escapeHtml(claim.bankAccount || "—")}</td>
       </tr>
@@ -315,11 +427,14 @@ function claimFormHtml(claim, options) {
       </thead>
       <tbody>${rows}${emptyRow}</tbody>
       <tfoot>
-        <tr class="grand"><td colspan="4">JUMLAH TUNTUTAN</td><td class="c-num">${escapeHtml(money2(total))}</td><td></td></tr>
+        <tr${rejected > 0 ? "" : ' class="grand"'}><td colspan="4">JUMLAH TUNTUTAN</td><td class="c-num">${escapeHtml(money2(total))}</td><td></td></tr>
+        ${rejected > 0 ? `<tr><td colspan="4">Tolak — tak boleh claim (${rejectedCount(claim)} butiran)</td><td class="c-num">− ${escapeHtml(money2(rejected))}</td><td></td></tr>
+        <tr class="grand"><td colspan="4">JUMLAH DILULUSKAN</td><td class="c-num">${escapeHtml(money2(approved))}</td><td></td></tr>` : ""}
       </tfoot>
     </table>
 
-    <p class="words"><b>Terbilang:</b> ${escapeHtml(terbilang(total))}</p>
+    <p class="words"><b>Terbilang:</b> ${escapeHtml(terbilang(rejected > 0 ? approved : total))}</p>
+    ${claim.remark ? `<p class="words remark-line"><b>${claim.status === "tak-boleh" ? "Sebab tak boleh claim" : rejected > 0 ? "Catatan admin (ada butiran ditolak)" : "Catatan admin"}:</b> ${escapeHtml(claim.remark)}</p>` : ""}
     ${claim.note ? `<p class="words"><b>Nota:</b> ${escapeHtml(claim.note)}</p>` : ""}
 
     <table class="sign-table">
@@ -354,6 +469,11 @@ const DOC_STYLE = `
   .muted{color:#55605a; font-size:9.5pt;}
   .doc-top{width:100%; border-bottom:2px solid #0f766e; padding-bottom:8pt; margin-bottom:12pt;}
   .doc-company{display:inline-block; width:58%; vertical-align:top;}
+  .brand{border-collapse:collapse; width:auto;}
+  .brand td{border:0; padding:0; vertical-align:middle;}
+  .brand-logo{padding-right:12pt !important;}
+  .brand-logo img{height:52pt; width:auto; display:block;}
+  .brand-text{vertical-align:middle;}
   .doc-title{display:inline-block; width:40%; vertical-align:top; text-align:right;}
   .doc-title h2{color:#0f766e;}
   .doc-no{font-size:11pt; font-weight:bold; margin-top:3pt;}
@@ -371,6 +491,9 @@ const DOC_STYLE = `
   .items-table tfoot .grand td{background:#eef4f2; font-weight:bold; font-size:11pt;}
   .items-table tfoot .grand td:first-child{text-align:right;}
   .words{margin-top:10pt; font-size:10.5pt;}
+  .remark-line{padding:7pt 9pt; background:#fdf1ef; border-left:3pt solid #c0291c; color:#7f1d1d;}
+  tr.row-reject td{background:#fdf1ef; color:#7f1d1d; text-decoration:line-through;}
+  tr.row-reject td .c-reject{text-decoration:none; font-size:9pt; color:#b91c1c;}
   .sign-table{margin-top:26pt;}
   .sign-table td{width:50%; vertical-align:top; padding-right:18pt;}
   .sign-label{font-size:9.5pt; color:#55605a; font-weight:bold;}

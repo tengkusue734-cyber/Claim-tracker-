@@ -8,24 +8,84 @@ let confirmDeleteClaim = false;
 let confirmDeleteItem = false;
 
 function persist() {
-  const list = readClaims();
-  const index = list.findIndex(item => item.id === claim.id);
-  if (index === -1) list.push(claim); else list[index] = claim;
-  return writeClaims(list);
+  // Staf tidak boleh kekalkan status keputusan admin selepas mengedit —
+  // tuntutan kembali kepada "Dihantar" untuk disemak semula.
+  if (!isAdminUser() && ADMIN_STATUSES.includes(claim.status)) {
+    claim.status = "dihantar";
+    claim.decidedBy = "";
+    claim.decidedAt = "";
+    toast("Tuntutan dikembalikan kepada status Dihantar untuk semakan semula admin.");
+  }
+  return saveClaim(claim);
 }
 
 /* ---------- Paparan ---------- */
 function renderHero() {
   const total = claimTotal(claim);
+  const rejected = rejectedTotal(claim);
   $("#claimNoLabel").textContent = claim.claimNo || "TUNTUTAN";
   $("#claimTitleLabel").textContent = claim.title || "Tuntutan tanpa tajuk";
   document.title = `${claim.claimNo || "Tuntutan"} · Claim Tracker`;
   $("#heroStaff").textContent = [claim.staffName, claim.position].filter(Boolean).join(" · ") || "Nama staf belum diisi";
-  $("#heroTotal").textContent = money(total);
+  $("#heroTotal").textContent = money(rejected > 0 ? approvedTotal(claim) : total);
+  $("#heroTotal").title = rejected > 0 ? `Jumlah asal ${money(total)}, ditolak ${money(rejected)}` : "";
   $("#heroItems").textContent = itemsOf(claim).length;
   $("#heroReceipts").textContent = receiptCount(claim);
   $("#heroPeriod").textContent = monthLabel(claim.period);
   $("#heroStatus").textContent = STATUS_LABEL[claim.status] || "Draf";
+  renderRemark();
+  renderDecision();
+}
+
+/* ---------- Jalur remark (nampak oleh staf & admin) ---------- */
+function renderRemark() {
+  const banner = $("#remarkBanner");
+  const rejected = rejectedTotal(claim);
+  if (claim.status !== "tak-boleh" && !claim.remark && rejected <= 0) { banner.hidden = true; banner.innerHTML = ""; return; }
+  banner.hidden = false;
+  banner.className = `remark-banner${claim.status === "tak-boleh" ? " is-blocked" : " is-partial"}`;
+  const heading = claim.status === "tak-boleh"
+    ? "Tuntutan ini tak boleh claim"
+    : `${rejectedCount(claim)} butiran tak boleh claim — ${money(rejected)} ditolak`;
+  banner.innerHTML = `<b></b><p></p>${claim.decidedBy ? `<span class="remark-by"></span>` : ""}`;
+  banner.querySelector("b").textContent = heading;
+  banner.querySelector("p").textContent = claim.remark || "Lihat baris yang bertanda dalam senarai perbelanjaan di bawah.";
+  if (claim.decidedBy) banner.querySelector(".remark-by").textContent = `Oleh ${claim.decidedBy}${claim.decidedAt ? ` · ${dateLabel(claim.decidedAt)}` : ""}`;
+}
+
+/* ---------- Panel keputusan (admin sahaja) ---------- */
+function renderDecision() {
+  const panel = $("#decisionSection");
+  if (!panel) return;
+  const admin = isAdminUser();
+  panel.hidden = !admin;
+  $("#itemAdmin").hidden = !admin;
+  if (!admin) return;
+  $("#decisionWho").textContent = claim.ownerEmail || claim.staffName || "";
+  if (document.activeElement !== $("#decisionRemark")) $("#decisionRemark").value = claim.remark || "";
+  document.querySelectorAll("[data-decide]").forEach(button => {
+    button.classList.toggle("is-current", button.dataset.decide === claim.status);
+  });
+}
+
+function decide(status) {
+  const user = currentUser();
+  claim.status = status;
+  claim.remark = $("#decisionRemark").value.trim();
+  if (ADMIN_STATUSES.includes(status)) {
+    claim.decidedBy = (user && (user.name || user.email)) || "Admin";
+    claim.decidedAt = today();
+  } else { claim.decidedBy = ""; claim.decidedAt = ""; }
+  if (status === "tak-boleh" && !claim.remark) {
+    $("#decisionStatus").textContent = "Isi sebab dalam kotak remark dahulu sebelum tandakan tak boleh claim.";
+    $("#decisionRemark").focus();
+    return;
+  }
+  if (saveClaim(claim)) {
+    $("#decisionStatus").textContent = `Status ditukar kepada "${STATUS_LABEL[status]}".`;
+    $("#fStatus").value = claim.status;
+    render();
+  }
 }
 
 function renderItems() {
@@ -36,14 +96,16 @@ function renderItems() {
   if (!items.length) { list.append($("#emptyItemTemplate").content.cloneNode(true)); return; }
 
   items.forEach((item, index) => {
+    const bad = itemRejected(item);
     const row = document.createElement("article");
-    row.className = "item-row";
+    row.className = `item-row${bad ? " is-reject" : ""}`;
     row.innerHTML = `<div class="item-thumb">${item.receipt && item.receipt.dataUrl
         ? `<img src="${item.receipt.dataUrl}" alt="Resit" data-photo="${item.id}" />`
         : `<span class="thumb-empty" title="Tiada gambar resit">—</span>`}</div>
       <div class="item-body">
         <p class="item-head"><b class="item-cat"></b><span class="item-date"></span></p>
         <p class="item-desc"></p>
+        ${bad ? `<p class="item-reject"><b>Tak boleh claim</b><span></span></p>` : ""}
       </div>
       <div class="item-end">
         <strong class="item-amount">${money(item.amount)}</strong>
@@ -54,6 +116,7 @@ function renderItems() {
     row.querySelector(".item-cat").textContent = item.category || "Tiada perkara";
     row.querySelector(".item-date").textContent = dateLabel(item.date);
     row.querySelector(".item-desc").textContent = item.description || "Tiada keterangan";
+    if (bad) row.querySelector(".item-reject span").textContent = item.itemRemark ? ` — ${item.itemRemark}` : "";
     list.append(row);
   });
 }
@@ -68,7 +131,8 @@ const FIELD_MAP = {
 };
 
 function fillForm() {
-  $("#fStatus").innerHTML = STATUSES.map(s => `<option value="${s.value}">${s.label}</option>`).join("");
+  const allowed = isAdminUser() ? STATUSES : STATUSES.filter(s => STAFF_STATUSES.includes(s.value) || s.value === claim.status);
+  $("#fStatus").innerHTML = allowed.map(s => `<option value="${s.value}">${s.label}</option>`).join("");
   Object.entries(FIELD_MAP).forEach(([id, key]) => { $(`#${id}`).value = claim[key] || ""; });
   if (!claim.status) $("#fStatus").value = "draf";
 }
@@ -115,6 +179,30 @@ function start() {
   $("#receiptFile").addEventListener("change", handleReceipt);
   $("#dropReceipt").addEventListener("click", () => { pendingReceipt = null; paintReceipt(); });
 
+  $("#iReject").addEventListener("change", () => {
+    $("#iRejectField").hidden = !$("#iReject").checked;
+    if ($("#iReject").checked) $("#iRemark").focus();
+  });
+  $(".decision-buttons").addEventListener("click", event => {
+    const button = event.target.closest("[data-decide]");
+    if (button) decide(button.dataset.decide);
+  });
+  $("#saveRemark").addEventListener("click", () => {
+    claim.remark = $("#decisionRemark").value.trim();
+    if (saveClaim(claim)) { $("#decisionStatus").textContent = "Remark disimpan."; render(); }
+  });
+
+  /* Muat semula bila data cloud masuk, dan ambil gambar resit dari cloud */
+  document.addEventListener("claim-cloud-data", () => {
+    const fresh = findClaim(claimId);
+    if (fresh) { claim = fresh; fillForm(); render(); }
+  });
+  document.addEventListener("claim-cloud-ready", () => {
+    fillForm(); render();
+    if (window.ctCloud && window.ctCloud.user) window.ctCloud.receipts(claimId);
+  });
+  if (window.ctCloud && window.ctCloud.user) window.ctCloud.receipts(claimId);
+
   $("#printClaim").addEventListener("click", () => { location.href = `print.html?id=${encodeURIComponent(claim.id)}`; });
   $("#wordClaim").addEventListener("click", () => downloadWord(claim));
 
@@ -124,7 +212,7 @@ function start() {
       $("#deleteClaim").textContent = "Tekan sekali lagi untuk padam";
       return;
     }
-    writeClaims(readClaims().filter(item => item.id !== claim.id));
+    deleteClaimById(claim.id);
     location.href = "index.html";
   });
 }
@@ -141,6 +229,10 @@ function openItemDialog(itemId) {
   $("#iDescription").value = item ? item.description || "" : "";
   pendingReceipt = item && item.receipt ? { ...item.receipt } : null;
   paintReceipt();
+  $("#itemAdmin").hidden = !isAdminUser();
+  $("#iReject").checked = !!(item && item.claimable === false);
+  $("#iRemark").value = item ? item.itemRemark || "" : "";
+  $("#iRejectField").hidden = !$("#iReject").checked;
   $("#deleteItem").hidden = !item;
   $("#deleteItem").textContent = "Padam butiran ini";
   $("#itemDialog").showModal();
@@ -190,6 +282,10 @@ function saveItem(event) {
     description: $("#iDescription").value.trim(),
     receipt: pendingReceipt || null
   };
+  if (isAdminUser()) {
+    payload.claimable = !$("#iReject").checked;
+    payload.itemRemark = $("#iReject").checked ? $("#iRemark").value.trim() : "";
+  }
   if (!Array.isArray(claim.items)) claim.items = [];
   if (editingItem) {
     const item = claim.items.find(entry => entry.id === editingItem);

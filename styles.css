@@ -408,3 +408,133 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none; ba
   #docRoot .items-table .c-mid{width:32pt;}
   #docRoot .sign-table td{display:block; width:100%; padding:0 0 20pt;}
 }
+
+
+/* ==========================================================================
+   Login, peranan & keputusan admin
+   ========================================================================== */
+.auth-bar{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin:16px 0 18px; padding:9px 10px 9px 14px;
+  background:var(--white); border:1px solid var(--line); border-radius:99px; box-shadow:var(--sh-1);
+}
+.auth-info{display:flex; align-items:center; gap:9px; min-width:0; color:var(--muted); font-size:.74rem; font-weight:750;}
+.auth-info span:last-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.auth-dot{flex:none; width:9px; height:9px; border-radius:50%; background:#cbd5cd; box-shadow:0 0 0 3px #cbd5cd33;}
+.auth-bar[data-state="online"] .auth-dot{background:#22c55e; box-shadow:0 0 0 3px #22c55e33;}
+.auth-bar[data-state="busy"] .auth-dot{background:#f59e0b; box-shadow:0 0 0 3px #f59e0b33;}
+.auth-bar[data-state="error"] .auth-dot{background:#ef4444; box-shadow:0 0 0 3px #ef444433;}
+.auth-bar[data-state="error"] .auth-info{color:var(--red);}
+.auth-button{
+  flex:none; border:0; border-radius:99px; background:var(--teal); color:#fff;
+  padding:9px 15px; font-size:.72rem; font-weight:800; box-shadow:0 2px 8px rgba(15,118,110,.28);
+}
+.auth-button:hover{background:var(--teal-deep);}
+.auth-button:disabled{opacity:.5; box-shadow:none;}
+
+.role-note{
+  margin:0 0 16px; padding:13px 15px; border-radius:var(--r-m);
+  background:var(--amber-light); border:1px solid #fcd96b; color:#7c4a08;
+  font-size:.77rem; line-height:1.6;
+}
+.role-note.is-admin{background:var(--teal-light); border-color:#9bddd3; color:var(--teal-deep);}
+.role-note b{font-weight:850;}
+
+.staff-filter{margin-bottom:8px;}
+
+/* Kad ringkasan tambahan */
+.stat.blocked::before{background:linear-gradient(90deg,#f87171,#dc2626);}
+.stat.blocked strong{color:var(--red);}
+@media (min-width:480px){ .stat-grid{grid-template-columns:repeat(5,1fr);} }
+
+/* Jumlah asal yang dipotong */
+.amount-strike{
+  display:block; margin-top:2px; color:var(--faint);
+  font-size:.74rem; font-weight:700; text-decoration:line-through;
+}
+.claim-remark{
+  margin-top:8px; padding:8px 10px; border-radius:var(--r-xs);
+  background:var(--red-light); color:var(--red); font-size:.72rem; font-weight:750; line-height:1.5;
+}
+.status-chip{white-space:nowrap;}
+.claim-card.status-tak-boleh{border-left-color:#ef4444;}
+.status-tak-boleh .status-chip{background:var(--red-light); color:var(--red);}
+
+/* Jalur remark pada halaman butiran */
+.remark-banner{
+  margin:0 0 16px; padding:15px 17px; border-radius:var(--r-m);
+  background:var(--red-light); border:1px solid #f6cfc9; box-shadow:var(--sh-1);
+}
+.remark-banner.is-partial{background:var(--amber-light); border-color:#fcd96b;}
+.remark-banner b{display:block; font-size:.85rem; font-weight:850; color:var(--red);}
+.remark-banner.is-partial b{color:var(--amber);}
+.remark-banner p{margin-top:5px; color:#6b4a46; font-size:.78rem; line-height:1.55;}
+.remark-banner.is-partial p{color:#7c4a08;}
+.remark-by{display:block; margin-top:7px; color:var(--muted); font-size:.68rem; font-weight:750;}
+
+/* Panel keputusan admin */
+.decision-section{border:1px solid #9bddd3; background:#f4fcfa;}
+.decision-buttons{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:14px 0 12px;}
+.dec-btn{
+  border:1px solid var(--line); border-radius:var(--r-s); background:var(--white);
+  color:var(--muted); padding:13px 10px; font-size:.78rem; font-weight:800; text-align:center;
+}
+.dec-btn:hover{border-color:var(--teal); color:var(--teal-deep);}
+.dec-btn.dec-ok:hover,.dec-btn.dec-ok.is-current{background:var(--green-light); color:var(--green); border-color:#86efac;}
+.dec-btn.dec-paid:hover,.dec-btn.dec-paid.is-current{background:var(--blue-light); color:var(--blue); border-color:#93c5fd;}
+.dec-btn.dec-no:hover,.dec-btn.dec-no.is-current{background:var(--red-light); color:var(--red); border-color:#f6cfc9;}
+.dec-btn.is-current{box-shadow:inset 0 0 0 1px currentColor;}
+.decision-section .save-button{margin-top:10px;}
+
+/* Butiran yang tak boleh claim */
+.item-row.is-reject{background:#fff7f6; border-color:#f6cfc9;}
+.item-row.is-reject .item-amount{color:var(--red); text-decoration:line-through;}
+.item-reject{margin-top:5px; color:var(--red); font-size:.7rem; font-weight:750; line-height:1.45;}
+.item-reject b{font-weight:850;}
+
+.item-admin{border:1px dashed #f6cfc9; border-radius:var(--r-m); padding:13px; background:#fffafa; display:grid; gap:11px;}
+.reject-toggle{display:flex; align-items:center; gap:9px; font-size:.78rem; font-weight:750; color:var(--red);}
+.reject-toggle input{width:auto; accent-color:var(--red);}
+.reject-toggle b{font-weight:850;}
+
+@media (min-width:640px){
+  .decision-buttons{grid-template-columns:repeat(4,1fr);}
+}
+@media (min-width:1040px){
+  .home-shell > .auth-bar,.detail-shell > .auth-bar,
+  .detail-shell > .remark-banner{grid-column:1 / -1;}
+  .detail-shell > .decision-section{grid-column:1;}
+  #listPanel > .role-note{grid-column:1 / -1;}
+  #listPanel > .stat-grid{grid-template-columns:repeat(5,1fr);}
+}
+
+/* Borang cetak: baris ditolak */
+#docRoot tr.row-reject td{background:#fdf1ef; color:#7f1d1d; text-decoration:line-through;}
+#docRoot tr.row-reject td .c-reject{text-decoration:none; font-size:9pt; color:#b91c1c; display:inline-block; margin-top:2pt;}
+#docRoot .remark-line{padding:7pt 9pt; background:#fdf1ef; border-left:3pt solid #c0291c; color:#7f1d1d;}
+
+
+/* ---------- Logo syarikat ---------- */
+.logo-field{border:1px dashed var(--line); border-radius:var(--r-m); padding:14px; background:#fbfefd; margin-top:14px;}
+.logo-preview{
+  min-height:110px; display:grid; place-items:center; border-radius:var(--r-s);
+  background:#fff; border:1px solid var(--line-soft); overflow:hidden; margin-bottom:11px; padding:12px;
+}
+.logo-preview img{max-width:100%; max-height:110px; object-fit:contain;}
+.logo-preview.is-empty{background:var(--line-soft);}
+/* Kertas borang berwarna putih — pratonton logo ikut warna yang sama */
+#docRoot .brand-logo img{background:#ffffff;}
+.logo-empty{color:var(--faint); font-size:.76rem; font-weight:700; text-align:center;}
+.logo-buttons{gap:9px;}
+.logo-field .link-button{margin-top:9px;}
+
+/* Logo pada borang cetak */
+#docRoot .brand{border-collapse:collapse; width:auto;}
+#docRoot .brand td{border:0; padding:0; vertical-align:middle;}
+#docRoot .brand td.brand-logo{padding-right:16pt;}
+#docRoot .brand-logo img{height:56pt; width:auto; display:block;}
+#docRoot .brand-text{vertical-align:middle;}
+@media (max-width:620px){
+  #docRoot .brand-logo img{height:44pt;}
+  #docRoot .brand td.brand-logo{padding-right:11pt;}
+}

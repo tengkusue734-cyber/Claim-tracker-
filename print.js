@@ -15,6 +15,9 @@ if (!printClaim) {
   $("#backLink").href = `claim.html?id=${encodeURIComponent(printClaim.id)}`;
   paint();
   $("#withImages").addEventListener("change", paint);
+  document.addEventListener("claim-cloud-data", () => { const fresh = findClaim(printId); if (fresh) { Object.assign(printClaim, fresh); paint(); } });
+  document.addEventListener("claim-cloud-ready", () => { if (window.ctCloud && window.ctCloud.user) window.ctCloud.receipts(printId); });
+  if (window.ctCloud && window.ctCloud.user) window.ctCloud.receipts(printId);
   $("#printButton").addEventListener("click", () => window.print());
   $("#wordButton").addEventListener("click", () => downloadWord(printClaim));
 }
